@@ -42,4 +42,4 @@ if count:
     print(f"⚠️  Compromis dans {count:,} fuites")
 
 for idee in suggestions(mdp):
-    print(f"→ {idee}")   
+    print(f"- {idee}")   

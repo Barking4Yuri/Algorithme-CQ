@@ -1,0 +1,11 @@
+Id;Nom;Description;Categorie;Prix (€);Stock;Promotion
+1;Pomme;Fruit rouge croquant;Fruit;1.50;10;1.0
+2;Banane;Fruit jaune sucré;Fruit;0.80;25;0.9
+3;Lait;Lait de vache entier;Laitier;1.20;15;1.0
+4;Beurre;Beurre doux 250g;Laitier;2.30;8;1.0
+5;Pain;Baguette tradition;Boulangerie;1.10;20;1.0
+6;Chocolat;Tablette noir 70%;Confiserie;3.50;12;0.8
+7;Jus d'orange;Boisson pressée 1L;Boisson;2.90;6;1.0
+8;Yaourt;Yaourt nature 4x125g;Laitier;1.80;30;0.95
+9;Fromage;Comté 300g;Laitier;5.90;5;1.0
+10;Café;Grains arabica 250g;Boisson;4.20;14;1.0   

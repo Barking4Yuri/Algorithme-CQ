@@ -8,8 +8,8 @@ TEST_DB = 'test.db'
 N = 6 
 
 def setup(n=N):
-    main.CSV_FILE = TEST_CSV
-    main.DB_FILE = TEST_DB
+    db.CSV_FILE = TEST_CSV
+    db.DB_FILE = TEST_DB
 
     with open(TEST_CSV, 'w', encoding='utf-8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=['Id', 'Nom', 'Description', 'Categorie', 'Prix (€)', 'Stock', 'Promotion'], delimiter=';')
@@ -27,7 +27,7 @@ def setup(n=N):
 
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
-    main.sync_db()
+    db.sync_db()
 
 def cleanup():
     for f in [TEST_CSV, TEST_DB]:
@@ -37,22 +37,22 @@ def cleanup():
 
 def test_get_all():
     setup()
-    rows = main.get_all()
+    rows = db.get_all()
     assert len(rows) == N, f"Attendu {N}, obtenu {len(rows)}"
     print("get_all réussie")
     cleanup()
 
 def test_get_produit():
     setup()
-    assert main.get_produit(1)['Nom'] == 'Produit1'
-    assert main.get_produit(999) is None
+    assert db.get_produit(1)['Nom'] == 'Produit1'
+    assert db.get_produit(999) is None
     print("get_produit réussie")
     cleanup()
 
 def test_tri_prix():
     setup()
-    asc = main.get_by_price('asc')
-    desc = main.get_by_price('desc')
+    asc = db.get_by_price('asc')
+    desc = db.get_by_price('desc')
     assert asc[0]['Nom'] == 'Produit1'
     assert desc[0]['Nom'] == f'Produit{N}'
     print("get_by_price réussie")
@@ -60,29 +60,29 @@ def test_tri_prix():
 
 def test_update():
     setup()
-    main.update_produit(1, {"Nom": "Modifie"})
-    assert main.get_produit(1)['Nom'] == 'Modifie'
+    db.update_produit(1, {"Nom": "Modifie"})
+    assert db.get_produit(1)['Nom'] == 'Modifie'
     print("update réussie")
     cleanup()
 
 def test_delete():
     setup()
-    main.delete_produit(1)
-    assert main.get_produit(1) is None
-    assert len(main.get_all()) == N - 1
+    db.delete_produit(1)
+    assert db.get_produit(1) is None
+    assert len(db.get_all()) == N - 1
     print("delete réussie")
     cleanup()
 
 def test_add():
     setup()
-    main.add_produit({"Nom": "Nouveau", "Prix": "9.99", "Stock": 1, "Promotion": "1.0"})
-    assert main.get_produit(N + 1)['Nom'] == 'Nouveau'
+    db.add_produit({"Nom": "Nouveau", "Prix": "9.99", "Stock": 1, "Promotion": "1.0"})
+    assert db.get_produit(N + 1)['Nom'] == 'Nouveau'
     print("add réussie")
     cleanup()
 
 def test_db_sync():
     setup()
-    main.update_produit(1, {"Nom": "DB Test"})
+    db.update_produit(1, {"Nom": "DB Test"})
     conn = sqlite3.connect(TEST_DB)
     cur = conn.cursor()
     cur.execute("SELECT Nom FROM produits WHERE Id = '1'")

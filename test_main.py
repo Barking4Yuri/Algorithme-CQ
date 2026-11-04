@@ -1,7 +1,7 @@
 import os
 import csv
 import sqlite3
-import main
+import db
 
 TEST_CSV = 'test.csv'
 TEST_DB = 'test.db'

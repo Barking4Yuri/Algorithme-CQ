@@ -1,5 +1,4 @@
 Id;role;email;pseudo;motdepasse
 1;administrateur;admincatalogue@exemple.com;admin;$2b$12$R.ZtimnVSA8t2ho1WC0Ag.Bn26R4wLJP5.YSMxRBtNYDF1O0icRne
-2;editeur;editcatalogue@exemple.com;edit;$2b$12$QCkcg4b7QsKA1d5n5wK4tO7C4Wji0eJtr/WyKBB3aCLclWn609kNi
-3;utilisateur;usercatalogue@exemple.com;user;$2b$12$4/RUkItD9Od9rw2oOmxEQe8dk66ijgHKLH27iZYOmIw/xGREqr0Vi4
-4;utilisateur;aaa@gmail.com;aaa;$2b$12$jZO6SYnP8sbGiHDd/adzXuqOJu2hDUtaCUekukM.24RjN3QmNPDMm
+2;editeur;editcatalogue@exemple.com;edit;$2b$12$QCkcg4b7QsKA1d5n5wK4tO7C4Wji0eJtr/WyKBB3aCLclWn609kNi6;utilisateur;user@exemple.com;user;$2b$12$lftfL8V6t3stYSu4g86LaueZQsL64y7gY0Cd6m8Pme07ZGob3OnpC
+3;utilisateur;user@exemple.com;user;$2b$12$95Rea2NhGG00e8FzgmyVVunFYwKhyLrrWcx5LnWSZOsNU7.wFPPc6

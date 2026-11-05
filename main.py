@@ -188,7 +188,7 @@ class LoginWindow(QWidget):
                 return
 
             else:
-                if username or email in utilisateurs:
+                if username in utilisateurs or email in utilisateurs:
                     QMessageBox.warning(
                         self, "Error", "Votre email ou votre pseudo est déjà utilisé"
                     )

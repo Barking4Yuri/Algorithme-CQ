@@ -84,56 +84,49 @@ def test_produits():
 
 
 def test_utilisateurs():
-    ancien_csv = compte.CSV_FILE
+    ancienne_db = compte.DB_FILE
     anciens_utilisateurs = compte.utilisateurs
+
     try:
         with tempfile.TemporaryDirectory() as dossier:
-            fichier = os.path.join(dossier, "utilisateur.csv")
-            compte.CSV_FILE = fichier
-
-            with open(fichier, 'w', encoding='utf-8', newline='') as f:
-                writer = csv.DictWriter(
-                    f,
-                    fieldnames=compte.HEADERS,
-                    delimiter=';'
-                )
-                writer.writeheader()
-
+            compte.DB_FILE = os.path.join(dossier, "test.db")
             compte.utilisateurs = {}
 
-            resultat = compte.creation_compte(
+            assert compte.creation_compte(
                 'test@mail.com',
                 'user_test',
                 'MdpTest123!'
             )
-            assert resultat is True
-            utilisateurs = compte.charger_utilisateurs(fichier)
+
+            utilisateurs = compte.charger_utilisateurs()
+
             assert 'user_test' in utilisateurs
             assert utilisateurs['user_test']['email'] == 'test@mail.com'
             assert utilisateurs['user_test']['role'] == 'utilisateur'
 
             assert compte.check_login(
                 'user_test',
-                'MdpTest123!',
-                utilisateurs
+                'MdpTest123!'
             )
 
             assert not compte.check_login(
                 'user_test',
-                'mauvais_mdp',
-                utilisateurs
+                'mauvais_mdp'
             )
 
             assert not compte.check_login(
                 'inconnu',
-                'password',
-                utilisateurs
+                'password'
             )
 
-    finally:
-        compte.CSV_FILE = ancien_csv
-        compte.utilisateurs = anciens_utilisateurs
+            assert compte.changer_role('user_test', 'admin')
 
+            utilisateur = compte.get_utilisateur('user_test')
+            assert utilisateur['role'] == 'admin'
+
+    finally:
+        compte.DB_FILE = ancienne_db
+        compte.utilisateurs = anciens_utilisateurs
 
 def test_hibp():
     resultat = haveibeenpwned.check_hibp("password123")

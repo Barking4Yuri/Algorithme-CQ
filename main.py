@@ -160,14 +160,16 @@ class LoginWindow(QWidget):
             return
 
         if self.mode == "login":
-
-            if compte.check_login(username, password, utilisateurs):
-
-                role = utilisateurs[username]['role']
-
+            if compte.check_login(username, password):
+                user = compte.get_utilisateur(username)
+                if user is None:
+                    QMessageBox.warning(
+                        self, "Erreur", "Utilisateur introuvable."
+                    )
+                    return
+                role = user['role']
                 self.welcome_window = interface.WelcomeWindow(username, role)
                 self.welcome_window.showMaximized()
-
                 self.close()
 
             else:

@@ -1,36 +1,59 @@
-import os
 import csv
-from fonctions import compte
+import sqlite3
+import os
 
+CSV_FILE = "utilisateur.csv"
+DB_FILE = "produits.db"
 
-print("--- Tests directs sur utilisateur.csv ---")
+if not os.path.exists(CSV_FILE):
+    print("utilisateur.csv not found!")
+    exit()
 
-assert os.path.exists("utilisateur.csv")
-print("Le fichier utilisateur.csv existe.")
+conn = sqlite3.connect(DB_FILE)
 
-utilisateurs_db = compte.charger_utilisateurs("utilisateur.csv")
-assert isinstance(utilisateurs_db, dict)
-print("Chargement de la base de données OK.")
+conn.execute("""
+CREATE TABLE IF NOT EXISTS utilisateurs (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    role TEXT NOT NULL DEFAULT 'utilisateur',
+    email TEXT NOT NULL UNIQUE,
+    pseudo TEXT NOT NULL UNIQUE,
+    motdepasse TEXT NOT NULL
+)
+""")
 
-print("Test d'écriture dans la DB...")
+with open(CSV_FILE, "r", encoding="utf-8", newline="") as f:
+    reader = csv.DictReader(f, delimiter=";")
 
-with open("utilisateur.csv", "r", encoding="utf-8") as f:
-    lignes_initiales = f.readlines()
+    total = 0
 
-compte.utilisateurs = utilisateurs_db
-compte.CSV_FILE = "utilisateur.csv"
-compte.creation_compte('test_db@mail.com', 'user_test_db', 'MdpDb123!')
+    for row in reader:
+        try:
+            conn.execute("""
+                INSERT OR IGNORE INTO utilisateurs
+                (Id, role, email, pseudo, motdepasse)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                row["Id"],
+                row["role"],
+                row["email"],
+                row["pseudo"].strip(),
+                row["motdepasse"]
+            ))
 
-utilisateurs_verif = compte.charger_utilisateurs("utilisateur.csv")
-assert 'user_test_db' in utilisateurs_verif
-assert utilisateurs_verif['user_test_db']['email'] == 'test_db@mail.com'
-print("Ajout dans utilisateur.csv OK.")
+            total += 1
 
-with open("utilisateur.csv", "w", encoding="utf-8") as f:
-    f.writelines(lignes_initiales)
+        except Exception as e:
+            print("Erreur :", e)
 
-utilisateurs_finaux = compte.charger_utilisateurs("utilisateur.csv")
-assert 'user_test_db' not in utilisateurs_finaux
-print("Nettoyage du compte de test OK (DB originale intacte).")
+conn.commit()
 
-print("Tous les tests sur la DB ont réussi !")
+print("Migration terminée !")
+
+users = conn.execute(
+    "SELECT Id, pseudo, role FROM utilisateurs"
+).fetchall()
+
+for user in users:
+    print(user)
+
+conn.close()

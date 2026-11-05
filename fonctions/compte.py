@@ -1,71 +1,133 @@
-import csv
+import sqlite3
 import bcrypt
 
-CSV_FILE = 'utilisateur.csv'
-DELIMITER = ';'
-HEADERS = ['Id', 'role', 'email', 'pseudo', 'motdepasse']
+DB_FILE = 'utilisateurs.db'
 
-def charger_utilisateurs(chemin_csv):
-    utilisateurs = {}
+utilisateurs = {}
 
-    try:
-        with open(chemin_csv, mode='r', newline='', encoding='utf-8') as f:
-            lecteur = csv.DictReader(f, delimiter=';')
 
-            for ligne in lecteur:
-                pseudo = ligne['pseudo'].strip()
-                utilisateurs[pseudo] = ligne
+def get_conn():
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
 
-    except FileNotFoundError:
-        print(f"Le fichier {chemin_csv} n'existe pas.")
-    except KeyError:
-        print("Erreur : colonne 'pseudo' introuvable dans le CSV.")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS utilisateurs (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role TEXT NOT NULL DEFAULT 'utilisateur',
+            email TEXT NOT NULL UNIQUE,
+            pseudo TEXT NOT NULL UNIQUE,
+            motdepasse TEXT NOT NULL
+        )
+    """)
 
+    conn.commit()
+    return conn
+
+
+def charger_utilisateurs():
+    utilisateurs.clear()
+
+    conn = get_conn()
+
+    rows = conn.execute(
+        "SELECT * FROM utilisateurs"
+    ).fetchall()
+
+    for ligne in rows:
+        utilisateurs[ligne['pseudo']] = dict(ligne)
+
+    conn.close()
     return utilisateurs
-utilisateurs = charger_utilisateurs("utilisateur.csv")
 
-def check_login(pseudo, mot_de_passe, utilisateurs):
-    user = utilisateurs.get(pseudo)
-    if user is None:
-        return False
-    hash_stocke = user['motdepasse'].encode('utf-8')
-    return bcrypt.checkpw(mot_de_passe.encode('utf-8'), hash_stocke)
 
-def creation_compte(email,pseudo,mot_de_passe):
+def check_login(pseudo, mot_de_passe, utilisateurs=None):
+    conn = get_conn()
+
     try:
-        role = "utilisateur"
+        user = conn.execute(
+            "SELECT motdepasse FROM utilisateurs WHERE pseudo = ?",
+            (pseudo,)
+        ).fetchone()
 
-        ids = [int(u['Id']) for u in utilisateurs.values()]
-        nouvel_id = max(ids) + 1 if ids else 1
+        if user is None:
+            return False
 
-        hash_mdp = bcrypt.hashpw(mot_de_passe.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        hash_stocke = user['motdepasse'].encode('utf-8')
 
-        nouvelle_ligne = {
-            'Id': nouvel_id,
-            'role': role,
-            'email': email,
-            'pseudo': pseudo,
-            'motdepasse': hash_mdp
-        }
+        return bcrypt.checkpw(
+            mot_de_passe.encode('utf-8'),
+            hash_stocke
+        )
+    finally:
+        conn.close()
 
-        with open(CSV_FILE, 'a', newline='\n', encoding='utf-8') as f:
-            ecrivain = csv.DictWriter(f, delimiter=';', fieldnames=['Id', 'role', 'email', 'pseudo', 'motdepasse'])
-            ecrivain.writerow(nouvelle_ligne)
 
-        utilisateurs[pseudo] = nouvelle_ligne
-        return True
-    except:
+def creation_compte(email, pseudo, mot_de_passe):
+    if not email or not pseudo or not mot_de_passe:
         return False
 
-if __name__ == "__main__":
-    
-    utilisateurs = charger_utilisateurs("utilisateur.csv")
-    pseudo = input("Pseudo : ")
-    mdp = input("Mot de passe : ")
+    conn = get_conn()
 
-    if login(pseudo, mdp, utilisateurs):
-        print("Connexion réussie.")
-    else:
-        print("Pseudo ou mot de passe incorrect.")
+    try:
+        hash_mdp = bcrypt.hashpw(
+            mot_de_passe.encode('utf-8'),
+            bcrypt.gensalt()
+        ).decode('utf-8')
 
-        
+        conn.execute("""
+            INSERT INTO utilisateurs
+            (role, email, pseudo, motdepasse)
+            VALUES (?, ?, ?, ?)
+        """, (
+            'utilisateur',
+            email,
+            pseudo,
+            hash_mdp
+        ))
+
+        conn.commit()
+        charger_utilisateurs()
+
+        return True
+
+    except sqlite3.IntegrityError:
+        return False
+
+    finally:
+        conn.close()
+
+
+def get_utilisateur(pseudo):
+    conn = get_conn()
+
+    try:
+        user = conn.execute(
+            "SELECT * FROM utilisateurs WHERE pseudo = ?",
+            (pseudo,)
+        ).fetchone()
+
+        return dict(user) if user else None
+
+    finally:
+        conn.close()
+
+
+def changer_role(pseudo, nouveau_role):
+    conn = get_conn()
+
+    try:
+        cursor = conn.execute(
+            "UPDATE utilisateurs SET role = ? WHERE pseudo = ?",
+            (nouveau_role, pseudo)
+        )
+
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            charger_utilisateurs()
+            return True
+
+        return False
+
+    finally:
+        conn.close()

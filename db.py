@@ -1,5 +1,6 @@
 import csv
 import sqlite3
+import argparse
 
 DB_FILE = 'produits.db'
 CSV_FILE = 'db.csv'
@@ -154,13 +155,123 @@ def delete_produit(id_objet):
     print(f"Produit {id_objet} supprimé.")
 
 
-if __name__ == '__emain__':
-    sync_db()
-    print(get_all())
-    update_produit(1, {"Nom": "Banane", "Prix": 2.5})
-    print(get_produit(1))
-    delete_produit(2)
-    print(get_all())   
+def afficher_produits(rows):
+    if not rows:
+        print("Aucun produit trouvé.")
+        return
+
+    for produit in rows:
+        print("-" * 50)
+        print(f"ID          : {produit['Id']}")
+        print(f"Nom         : {produit['Nom']}")
+        print(f"Description : {produit['Description']}")
+        print(f"Catégorie   : {produit['Categorie']}")
+        print(f"Prix        : {produit['Prix (€)']} €")
+        print(f"Stock       : {produit['Stock']}")
+        print(f"Promotion   : {produit['Promotion']}")
+    print("-" * 50)
 
 
-print(get_by_price('asc'))
+def main():
+    parser = argparse.ArgumentParser(
+        description="Gestion du catalogue de produits"
+    )
+    commandes = parser.add_mutually_exclusive_group()
+    commandes.add_argument(
+        "--list",
+        action="store_true",
+        help="Afficher tous les produits"
+    )
+    commandes.add_argument(
+        "--sort-name",
+        choices=["asc", "desc"],
+        help="Trier les produits par nom"
+    )
+    commandes.add_argument(
+        "--sort-price",
+        choices=["asc", "desc"],
+        help="Trier les produits par prix"
+    )
+    commandes.add_argument(
+        "--search",
+        type=str,
+        help="Rechercher un produit par mot-clé"
+    )
+    commandes.add_argument(
+        "--add",
+        action="store_true",
+        help="Ajouter un produit"
+    )
+    commandes.add_argument(
+        "--update",
+        type=str,
+        metavar="ID",
+        help="Modifier un produit"
+    )
+    commandes.add_argument(
+        "--delete",
+        type=str,
+        metavar="ID",
+        help="Supprimer un produit"
+    )
+    parser.add_argument("--nom")
+    parser.add_argument("--description")
+    parser.add_argument("--categorie")
+    parser.add_argument("--prix")
+    parser.add_argument("--stock")
+    parser.add_argument("--promotion")
+    args = parser.parse_args()
+    if args.sort_name:
+        afficher_produits(get_by_name(args.sort_name))
+    elif args.sort_price:
+        afficher_produits(get_by_price(args.sort_price))
+    elif args.search:
+        afficher_produits(search_produit(args.search))
+    elif args.add:
+        if args.nom is None or args.prix is None:
+            parser.error("--add nécessite au minimum --nom et --prix")
+
+        try:
+            data = {
+                "Nom": args.nom,
+                "Description": args.description or "",
+                "Categorie": args.categorie or "",
+                "Prix": args.prix,
+                "Stock": int(args.stock or 0),
+                "Promotion": args.promotion or "1.0"
+            }
+
+            add_produit(data)
+
+        except ValueError as e:
+            parser.error(str(e))
+    elif args.update:
+        data = {}
+
+        if args.nom is not None:
+            data["Nom"] = args.nom
+        if args.description is not None:
+            data["Description"] = args.description
+        if args.categorie is not None:
+            data["Categorie"] = args.categorie
+        if args.prix is not None:
+            data["Prix"] = args.prix
+        if args.stock is not None:
+            data["Stock"] = int(args.stock)
+        if args.promotion is not None:
+            data["Promotion"] = args.promotion
+        if not data:
+            parser.error("Indiquez au moins un champ à modifier.")
+        try:
+            update_produit(args.update, data)
+        except ValueError as e:
+            parser.error(str(e))
+
+    elif args.delete:
+        delete_produit(args.delete)
+    else:
+        afficher_produits(get_all())
+
+
+if __name__ == "__main__":
+    main()

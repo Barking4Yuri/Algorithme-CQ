@@ -7,21 +7,27 @@ CSV_FILE = 'db.csv'
 DELIMITER = ';'
 HEADERS = ['Id', 'Nom', 'Description', 'Categorie', 'Prix (€)', 'Stock', 'Promotion']
 
-
 def _read_csv():
+    '''
+    Lit le ficher CSV en le retournant sous forme de liste
+    '''
     with open(CSV_FILE, 'r', encoding='utf-8', newline='') as f:
         return list(csv.DictReader(f, delimiter=DELIMITER))
 
-
 def _write_csv(rows):
+    '''
+    Ecrit dans le fichier CSV
+    '''
     with open(CSV_FILE, 'w', encoding='utf-8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=HEADERS, delimiter=DELIMITER)
         writer.writeheader()
         writer.writerows(rows)
 
-def get_conn(db_file=None):
-    if db_file is None:
-        db_file = DB_FILE
+
+def get_conn(db_file = DB_FILE): 
+    '''
+    retourne la connection avec la DB
+    '''
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     cursor.execute('''
@@ -38,10 +44,7 @@ def get_conn(db_file=None):
     conn.commit()
     return conn
 
-
-def sync_db(db_file=None):
-    if db_file is None:
-        db_file = DB_FILE
+def sync_db(db_file= DB_FILE):
     conn = get_conn(db_file)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM produits")
@@ -75,10 +78,11 @@ def get_produit(id_objet):
         if row['Id'] == str(id_objet):
             return row
     return None
+
 def _validate_promotion(value):
     try:
         f = float(value)
-        if f < 0:
+        if 1 <= f < 0:
             raise ValueError
         return f
     except (ValueError, TypeError):
@@ -109,7 +113,6 @@ def add_produit(data: dict):
     _write_csv(rows)
     sync_db()
     print(f"Produit {new_id} ajouté.")
-
 
 def update_produit(id_objet, data: dict):
     if 'Promotion' in data:
@@ -154,6 +157,47 @@ def delete_produit(id_objet):
     sync_db()
     print(f"Produit {id_objet} supprimé.")
 
+def get_produit_sql(con, id_produit):
+    return con.execute('''
+    SELECT * FROM produits WHERE Id = ?;
+''', (id_produit))
+
+def get_by_price_sql(con):
+    return con.execute('''
+    SELECT Id, Nom, Prix FROM produits ORDER BY Prix;
+    ''')
+
+def add_produit_sql(con, data :dict):
+    if len(data) == 7:
+        con.execute('''
+        INSERT INTO Produits VALUES (?,?,?,?,?,?,?);
+        ''', tuple(data.values()))
+
+def update_sql(con, id_objet, data : dict):
+    ref = get_produit_sql(con, id_objet)
+    dic_ref = {"Id": ref[0],"Nom": ref[1], "Description" : ref[2], "Categorie" : ref[3], "Prix" : ref[4], "Stock" : ref[5], "Promotion" : ref[6]}
+
+    for key in dic_ref.keys():
+        if key not in data:
+            data[key] = NULL
+    data["Id"] = id_objet
+
+    query = ''' UPDATE produits
+                SET Nom = COALESCE(:Nom, Nom)
+                    Description = COALESCE(:Description, Description)
+                    Categorie = COALESCE(:Categorie, Categorie)
+                    Prix = COALESCE(:Prix, Prix)
+                    Stock = COALESCE(:Stock, Stock)
+                    Promotion = COALESCE(:Promotion, Promotion)
+                WHERE Id = :Id;
+            '''
+    
+    con.execute(query, data)
+
+def delete_produit_sql(con, id_objet):
+    con.execute('''
+    DELETE FROM produits WHERE Id = ?;
+    ''', (id_objet,))
 
 def afficher_produits(rows):
     if not rows:
@@ -170,7 +214,6 @@ def afficher_produits(rows):
         print(f"Stock       : {produit['Stock']}")
         print(f"Promotion   : {produit['Promotion']}")
     print("-" * 50)
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -273,5 +316,5 @@ def main():
         afficher_produits(get_all())
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
